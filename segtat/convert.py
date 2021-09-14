@@ -1,7 +1,37 @@
 import os
 import numpy as np
+import pickle
 import torch
 from geotiff import GeoTiff
+from sklearn.preprocessing import StandardScaler
+
+
+def prepare_scalers(vh_matrix, vv_matrix, save_path):
+    """ Prepare and save standard scalers for matrices """
+    # Train scaler for VH
+    scaler_vh = StandardScaler()
+    scaler_vh.fit(np.ravel(vh_matrix).reshape((-1, 1)))
+
+    # For VV polarisation
+    scaler_vv = StandardScaler()
+    scaler_vv.fit(np.ravel(vv_matrix).reshape((-1, 1)))
+
+    # Save scalers into folder
+    pickle.dump(scaler_vh, open(os.path.join(save_path, 'scaler_vh.pkl'), 'wb'))
+    pickle.dump(scaler_vv, open(os.path.join(save_path, 'scaler_vv.pkl'), 'wb'))
+
+    return scaler_vh, scaler_vv
+
+
+def fix_label_matrix(label_matrix):
+    """ Remove 255 values (NoDATA or OutOfExtend) from matrix """
+    no_data_ids = np.argwhere(label_matrix == 255)
+    if len(np.ravel(no_data_ids)) != 0:
+        # All OutOfExtend pixels becomes 'land'
+        label_matrix[label_matrix == 255] = 0
+        return label_matrix
+    else:
+        return label_matrix
 
 
 def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str):
@@ -17,7 +47,7 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str)
 
     features_tensor = []
     target_tensor = []
-    for file in label_files:
+    for i, file in enumerate(label_files):
         splitted = file.split('.')
         base_name = splitted[0]
         vh_postfix = '_vh.tif'
@@ -37,8 +67,20 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str)
         vv_matrix = np.array(file_vv_tiff.read())
         label_matrix = np.array(file_label_tiff.read())
 
-        # TODO apply scaling
-        stacked_matrix = np.array([vh_matrix, vv_matrix])
+        # Fix values in label matrices
+        label_matrix = fix_label_matrix(label_matrix)
+
+        if i == 0:
+            scaler_vh, scaler_vv = prepare_scalers(vh_matrix, vv_matrix, save_path)
+
+        # Perform scaling
+        vh_transformed = scaler_vh.transform(np.ravel(vh_matrix).reshape((-1, 1)))
+        vh_transformed = vh_transformed.reshape((vh_matrix.shape[0], vh_matrix.shape[1]))
+        vv_transformed = scaler_vv.transform(np.ravel(vv_matrix).reshape((-1, 1)))
+        vv_transformed = vv_transformed.reshape((vv_matrix.shape[0], vv_matrix.shape[1]))
+
+        # Pack transformed matrices
+        stacked_matrix = np.array([vh_transformed, vv_transformed])
         features_tensor.append(stacked_matrix)
         target_tensor.append([label_matrix])
 
