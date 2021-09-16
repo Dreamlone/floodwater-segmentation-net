@@ -5,11 +5,11 @@ import pandas as pd
 from geotiff import GeoTiff
 
 
-metadata = pd.read_csv('D:/segmentation/flood-training-metadata.csv')
+metadata = pd.read_csv('C:/Users/Julia/Documents/ITMO/NSS_LAB/water_detection/flood-training-metadata.csv')
 print(metadata.head(20))
 
-train_features_path = 'D:/segmentation/train_features'
-train_label_path = 'D:/segmentation/train_labels'
+train_features_path = 'C:/Users/Julia/Documents/ITMO/NSS_LAB/water_detection/train_features'
+train_label_path = 'C:/Users/Julia/Documents/ITMO/NSS_LAB/water_detection/train_labels'
 
 label_files = os.listdir(train_label_path)
 # Download all files

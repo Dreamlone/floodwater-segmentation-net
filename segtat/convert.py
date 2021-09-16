@@ -4,7 +4,7 @@ import pickle
 import torch
 from geotiff import GeoTiff
 from sklearn.preprocessing import StandardScaler
-from segtat.preprocessing import rvi_index, swi_index, ratio_index, gaussian_filter
+from segtat.preprocessing import rvi_index, swi_index, ratio_index, smooth_gaussian_filter
 
 
 def prepare_simple_scalers(vh_matrix, vv_matrix, save_path):
@@ -116,20 +116,34 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str,
         # Fix values in label matrices
         label_matrix = fix_label_matrix(label_matrix)
 
+        # Remove zeros values from matrices
+        if len(np.ravel(np.argwhere(vh_matrix == 0))) > 0:
+            vh_matrix[vh_matrix == 0] = 0.0001
+        if len(np.ravel(np.argwhere(vv_matrix == 0))) > 0:
+            vv_matrix[vv_matrix == 0] = 0.0001
+
+        if do_smoothing:
+            #########################
+            # Gaussian filter using #
+            #########################
+            vh_matrix = smooth_gaussian_filter(vh_matrix)
+            vv_matrix = smooth_gaussian_filter(vv_matrix)
+
+
+        # Train scaler on the first matrices
+        if i == 0:
+            scaler_vh, scaler_vv = prepare_simple_scalers(vh_matrix, vv_matrix, save_path)
+
+        # Perform scaling for VH and VV
+        vh_transformed = scaler_vh.transform(np.ravel(vh_matrix).reshape((-1, 1)))
+        vh_transformed = vh_transformed.reshape((vh_matrix.shape[0], vh_matrix.shape[1]))
+        vv_transformed = scaler_vv.transform(np.ravel(vv_matrix).reshape((-1, 1)))
+        vv_transformed = vv_transformed.reshape((vv_matrix.shape[0], vv_matrix.shape[1]))
+
+        # Pack transformed VH and VV matrices
+        stacked_matrix = [vh_transformed, vv_transformed]
+
         if transformed_indices:
-            # Remove zeros values from matrices
-            if len(np.ravel(np.argwhere(vh_matrix == 0))) > 0:
-                vh_matrix[vh_matrix == 0] = 0.0001
-            if len(np.ravel(np.argwhere(vv_matrix == 0))) > 0:
-                vv_matrix[vv_matrix == 0] = 0.0001
-
-            if do_smoothing:
-                #########################
-                # Gaussian filter using #
-                #########################
-                vh_matrix = gaussian_filter(vh_matrix)
-                vv_matrix = gaussian_filter(vv_matrix)
-
             # Perform calculations
             rvi_matrix, swi_matrix, ratio_matrix = calculate_indices(vh_matrix, vv_matrix)
 
@@ -150,27 +164,11 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str,
             ratio_transformed = ratio_transformed.reshape((ratio_matrix.shape[0], ratio_matrix.shape[1]))
 
             # Pack transformed matrices
-            stacked_matrix = np.array([rvi_transformed, swi_transformed, ratio_transformed])
-        else:
-            if do_smoothing:
-                #########################
-                # Gaussian filter using #
-                #########################
-                vh_matrix = gaussian_filter(vh_matrix)
-                vv_matrix = gaussian_filter(vv_matrix)
+            stacked_matrix.append(rvi_transformed)
+            stacked_matrix.append(swi_transformed)
+            stacked_matrix.append(ratio_transformed)
 
-            # Train scaler on the first matrices
-            if i == 0:
-                scaler_vh, scaler_vv = prepare_simple_scalers(vh_matrix, vv_matrix, save_path)
-
-            # Perform scaling for VH and VV
-            vh_transformed = scaler_vh.transform(np.ravel(vh_matrix).reshape((-1, 1)))
-            vh_transformed = vh_transformed.reshape((vh_matrix.shape[0], vh_matrix.shape[1]))
-            vv_transformed = scaler_vv.transform(np.ravel(vv_matrix).reshape((-1, 1)))
-            vv_transformed = vv_transformed.reshape((vv_matrix.shape[0], vv_matrix.shape[1]))
-
-            # Pack transformed VH and VV matrices
-            stacked_matrix = np.array([vh_transformed, vv_transformed])
+        stacked_matrix = np.array(stacked_matrix)
         features_tensor.append(stacked_matrix)
         target_tensor.append([label_matrix])
 
