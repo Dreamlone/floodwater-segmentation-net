@@ -2,6 +2,8 @@ import os
 import torch
 import torch.utils.data as data_utils
 import segmentation_models_pytorch as smp
+import numpy as np
+import matplotlib.pyplot as plt
 
 from segtat.metrics import XEDiceLoss
 
@@ -9,10 +11,10 @@ from segtat.metrics import XEDiceLoss
 class ModelExplorer:
     """ Class for launching PyTorch Neural networks """
 
-    def __init__(self, working_dir: str, device: bool = 'cpu'):
+    def __init__(self, working_dir: str, device: str = 'cpu'):
         self.working_dir = working_dir
         # Loss for all models will be the same
-        self.loss = XEDiceLoss()
+        self.loss = smp.utils.losses.DiceLoss()
         self.device = device
 
     def fit(self, train: torch.tensor, model, **params):
@@ -22,9 +24,10 @@ class ModelExplorer:
         :param train: tensor with data for train
         :param model: class PyTorch model
         """
+        path_to_save = os.path.join(self.working_dir, 'best_model.pth')
         train_dataset, valid_dataset = self.train_test(train.tensors[0], train.tensors[1], train_size=0.9)
         # Prepare data loaders
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=params['batch_size'], num_workers=0)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=params['batch_size'])
         valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=1, shuffle=False)
 
         optimizer = params['optimizer']
@@ -52,18 +55,19 @@ class ModelExplorer:
             train_logs = train_epoch.run(train_loader)
             valid_logs = valid_epoch.run(valid_loader)
 
-            # do something (save model, change lr, etc.)
             if max_score < valid_logs['iou_score']:
                 max_score = valid_logs['iou_score']
-                path_to_save = os.path.join(self.working_dir, 'best_model.pth')
                 torch.save(model, path_to_save)
                 print('Model saved!')
+                return model
 
             # When it takes only 0.7 set
             if i == round(params['epochs']*0.7):
                 # Decrease decoder learning rate to 1e-5
                 optimizer.param_groups[0]['lr'] = 1e-5
 
+        torch.save(model, path_to_save)
+        print('Model saved!')
         return model
 
     def validate(self, test: torch.tensor, model_path: str, model=None, **params):
@@ -74,17 +78,32 @@ class ModelExplorer:
         :param model: class PyTorch model
         """
         if model is None:
-            model = torch.load(os.path.join(self.working_dir, 'best_model.pth'))
+            model = torch.load(model_path)
 
-        test_loader = torch.utils.data.DataLoader(test)
-        test_epoch = smp.utils.train.ValidEpoch(
-            model=model,
-            loss=self.loss,
-            metrics=params['metrics'],
-            device=self.device,
-        )
+        for i in range(5):
+            n = np.random.choice(len(test))
+            features_tensor = test.tensors[0][n]
+            true_label = test.tensors[1][n]
 
-        logs = test_epoch.run(test_loader)
+            x_tensor = features_tensor.to(self.device).unsqueeze(0)
+            pr_mask = model.predict(x_tensor)
+            pr_mask = pr_mask.squeeze().cpu().numpy().round()
+
+            plt.imshow(pr_mask[1], cmap='Purples', alpha=1.0)
+            plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.2)
+            plt.colorbar()
+            plt.show()
+
+        # test_loader = torch.utils.data.DataLoader(test)
+        # test_epoch = smp.utils.train.ValidEpoch(
+        #     model=model,
+        #     loss=self.loss,
+        #     metrics=params['metrics'],
+        #     device=self.device,
+        # )
+        #
+        # # Calculate loss
+        # logs = test_epoch.run(test_loader)
 
     @staticmethod
     def load_data(features_path: str, target_path: str, as_np: bool = False):
@@ -107,6 +126,7 @@ class ModelExplorer:
     @staticmethod
     def train_test(x_train: torch.tensor, y_train: torch.tensor, train_size: float = 0.8):
         """ Method for train test split
+        TODO исправить разбиение - сейчас оно не проводится
 
         :param x_train: pytorch tensor with features
         :param y_train: pytorch tensor with labels

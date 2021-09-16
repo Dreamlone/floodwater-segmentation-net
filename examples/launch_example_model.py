@@ -8,7 +8,7 @@ from segtat.explorer import ModelExplorer
 Это вспомогательный инструмент для запуска нейронных сетей и проведения валидации.
 Позволяет применять методы аугментации, разделения на обучение и тест.   
 """
-explorer = ModelExplorer(working_dir='D:/segmentation')
+explorer = ModelExplorer(working_dir='D:/segmentation', device='cuda')
 # Load data as PyTorch tensors
 x_train, y_train = explorer.load_data(features_path='D:/segmentation/converted/X_train.pt',
                                       target_path='D:/segmentation/converted/Y_train.pt',
@@ -25,8 +25,8 @@ optimizer = torch.optim.Adam(params=nn_model.parameters(), lr=0.0001)
 metrics = [smp.utils.metrics.IoU(threshold=0.5)]
 
 # Launch network model
-fitted_model = explorer.fit(train, nn_model, batch_size=10, epochs=20,
+fitted_model = explorer.fit(train, nn_model, batch_size=10, epochs=1,
                             optimizer=optimizer, metrics=metrics)
 
 # Validate model on the test dataset
-explorer.validate(test, fitted_model, metrics=metrics)
+explorer.validate(test, model_path='D:/segmentation/best_model.pth', metrics=metrics)
