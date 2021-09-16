@@ -17,15 +17,15 @@ x_train, y_train = explorer.load_data(features_path='D:/segmentation/converted/X
 train, test = explorer.train_test(x_train, y_train, train_size=0.9)
 
 # Initialise Neural network model
-nn_model = smp.Unet(encoder_name="resnet34",
+nn_model = smp.Unet(encoder_name="resnet18",
                     encoder_weights="imagenet",
                     in_channels=2,
-                    classes=2)
+                    classes=1)
 optimizer = torch.optim.Adam(params=nn_model.parameters(), lr=0.0001)
 metrics = [smp.utils.metrics.IoU(threshold=0.5)]
 
 # Launch network model
-fitted_model = explorer.fit(train, nn_model, batch_size=10, epochs=1,
+fitted_model = explorer.fit(train, nn_model, batch_size=10, epochs=5,
                             optimizer=optimizer, metrics=metrics)
 
 # Validate model on the test dataset

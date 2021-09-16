@@ -55,12 +55,6 @@ class ModelExplorer:
             train_logs = train_epoch.run(train_loader)
             valid_logs = valid_epoch.run(valid_loader)
 
-            if max_score < valid_logs['iou_score']:
-                max_score = valid_logs['iou_score']
-                torch.save(model, path_to_save)
-                print('Model saved!')
-                return model
-
             # When it takes only 0.7 set
             if i == round(params['epochs']*0.7):
                 # Decrease decoder learning rate to 1e-5
@@ -87,23 +81,27 @@ class ModelExplorer:
 
             x_tensor = features_tensor.to(self.device).unsqueeze(0)
             pr_mask = model.predict(x_tensor)
-            pr_mask = pr_mask.squeeze().cpu().numpy().round()
+            pr_mask = pr_mask.squeeze().cpu().numpy()
 
-            plt.imshow(pr_mask[1], cmap='Purples', alpha=1.0)
-            plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.2)
+            plt.imshow(pr_mask, cmap='Purples', alpha=1.0)
+            #plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.2)
             plt.colorbar()
             plt.show()
 
-        # test_loader = torch.utils.data.DataLoader(test)
-        # test_epoch = smp.utils.train.ValidEpoch(
-        #     model=model,
-        #     loss=self.loss,
-        #     metrics=params['metrics'],
-        #     device=self.device,
-        # )
-        #
-        # # Calculate loss
-        # logs = test_epoch.run(test_loader)
+            plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.9)
+            plt.colorbar()
+            plt.show()
+
+        test_loader = torch.utils.data.DataLoader(test)
+        test_epoch = smp.utils.train.ValidEpoch(
+            model=model,
+            loss=self.loss,
+            metrics=params['metrics'],
+            device=self.device,
+        )
+
+        # Calculate loss
+        logs = test_epoch.run(test_loader)
 
     @staticmethod
     def load_data(features_path: str, target_path: str, as_np: bool = False):
