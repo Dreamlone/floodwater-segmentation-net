@@ -48,7 +48,6 @@ class ModelExplorer:
             verbose=True,
         )
 
-        max_score = 0
         for i in range(0, params['epochs']):
 
             print('\nEpoch: {}'.format(i))
@@ -124,7 +123,6 @@ class ModelExplorer:
     @staticmethod
     def train_test(x_train: torch.tensor, y_train: torch.tensor, train_size: float = 0.8):
         """ Method for train test split
-        TODO исправить разбиение - сейчас оно не проводится
 
         :param x_train: pytorch tensor with features
         :param y_train: pytorch tensor with labels
@@ -137,7 +135,11 @@ class ModelExplorer:
         test_ratio = len(dataset) - train_ratio
         train, test = torch.utils.data.random_split(dataset, [train_ratio, test_ratio])
 
-        return train.dataset, test.dataset
+        train_features, train_target = train.dataset[train.indices]
+        test_features, test_target = test.dataset[test.indices]
+        train_dataset = data_utils.TensorDataset(train_features, train_target)
+        test_dataset = data_utils.TensorDataset(test_features, test_target)
+        return train_dataset, test_dataset
 
     @staticmethod
     def augmentation(dataset: torch.tensor) -> torch.tensor:
