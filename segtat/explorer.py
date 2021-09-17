@@ -81,7 +81,7 @@ class ModelExplorer:
 
             x_tensor = features_tensor.to(self.device).unsqueeze(0)
             pr_mask = model.predict(x_tensor)
-            pr_mask = pr_mask.squeeze().cpu().numpy()
+            pr_mask = pr_mask.squeeze().cpu().numpy().astype(np.uint8)
 
             plt.imshow(pr_mask, cmap='Purples', alpha=1.0)
             #plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.2)

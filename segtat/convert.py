@@ -4,7 +4,7 @@ import pickle
 import torch
 from geotiff import GeoTiff
 from sklearn.preprocessing import StandardScaler
-from segtat.preprocessing import rvi_index, swi_index, ratio_index, gaussian_filter
+from segtat.preprocessing import rvi_index, swi_index, ratio_index, gauss_filtering
 
 
 def prepare_simple_scalers(vh_matrix, vv_matrix, save_path):
@@ -127,8 +127,8 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str,
                 #########################
                 # Gaussian filter using #
                 #########################
-                vh_matrix = gaussian_filter(vh_matrix)
-                vv_matrix = gaussian_filter(vv_matrix)
+                vh_matrix = gauss_filtering(vh_matrix)
+                vv_matrix = gauss_filtering(vv_matrix)
 
             # Perform calculations
             rvi_matrix, swi_matrix, ratio_matrix = calculate_indices(vh_matrix, vv_matrix)
@@ -156,8 +156,8 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str,
                 #########################
                 # Gaussian filter using #
                 #########################
-                vh_matrix = gaussian_filter(vh_matrix)
-                vv_matrix = gaussian_filter(vv_matrix)
+                vh_matrix = gauss_filtering(vh_matrix)
+                vv_matrix = gauss_filtering(vv_matrix)
 
             # Train scaler on the first matrices
             if i == 0:
@@ -171,6 +171,7 @@ def convert_geotiff_into_pt(features_path: str, label_path: str, save_path: str,
 
             # Pack transformed VH and VV matrices
             stacked_matrix = np.array([vh_transformed, vv_transformed])
+
         features_tensor.append(stacked_matrix)
         target_tensor.append([label_matrix])
 
