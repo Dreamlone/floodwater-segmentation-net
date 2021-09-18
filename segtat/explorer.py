@@ -63,33 +63,41 @@ class ModelExplorer:
         print('Model saved!')
         return model
 
-    def validate(self, test: torch.tensor, model_path: str, model=None, **params):
+    def validate(self, test: torch.tensor, model_path: str, model=None,
+                 threshold: float = None, **params):
         """ Perform validation on the test set
 
         :param test: tensor with test data
         :param model_path: path to the serialised PyTorch model
         :param model: class PyTorch model
+        :param threshold: threshold for class definition
         """
         if model is None:
             model = torch.load(model_path)
 
-        for i in range(5):
-            n = np.random.choice(len(test))
-            features_tensor = test.tensors[0][n]
-            true_label = test.tensors[1][n]
+        if params['vis'] is not None and params['vis'] is True:
+            for i in range(5):
+                n = np.random.choice(len(test))
+                features_tensor = test.tensors[0][n]
+                true_label = test.tensors[1][n]
 
-            x_tensor = features_tensor.to(self.device).unsqueeze(0)
-            pr_mask = model.predict(x_tensor)
-            pr_mask = pr_mask.squeeze().cpu().numpy().astype(np.uint8)
+                x_tensor = features_tensor.to(self.device).unsqueeze(0)
+                pr_mask = model.predict(x_tensor)
+                if threshold is None:
+                    pr_mask = pr_mask.squeeze().cpu().numpy().astype(np.uint8)
+                else:
+                    pr_mask = pr_mask.squeeze().cpu().numpy()
+                    pr_mask[pr_mask < threshold] = 0
+                    pr_mask[pr_mask >= threshold] = 1
 
-            plt.imshow(pr_mask, cmap='Purples', alpha=1.0)
-            #plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.2)
-            plt.colorbar()
-            plt.show()
+                plt.imshow(pr_mask, cmap='Purples', alpha=1.0)
+                #plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.2)
+                plt.colorbar()
+                plt.show()
 
-            plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.9)
-            plt.colorbar()
-            plt.show()
+                plt.imshow(true_label.numpy()[0], cmap='Blues', alpha=0.9)
+                plt.colorbar()
+                plt.show()
 
         test_loader = torch.utils.data.DataLoader(test)
         test_epoch = smp.utils.train.ValidEpoch(
