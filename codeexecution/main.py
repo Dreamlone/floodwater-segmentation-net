@@ -2,6 +2,7 @@ import sys
 import pickle
 from pathlib import Path
 
+import torch
 from loguru import logger
 import numpy as np
 import typer
@@ -15,11 +16,11 @@ DATA_DIRECTORY = ROOT_DIRECTORY / "data"
 INPUT_IMAGES_DIRECTORY = DATA_DIRECTORY / "test_features"
 
 
-def gauss_filtering(matrix):
+def gauss_filtering(matrix: np.array) -> np.array:
     return gaussian_filter(matrix, sigma=3)
 
 
-def preprocess_data(arr_vh, arr_vv):
+def preprocess_data(arr_vh: np.array, arr_vv: np.array) -> np.array:
     """ Create stacked features numpy tensor """
     scaler_vh_path = ROOT_DIRECTORY / "assets" / 'scaler_vh.pkl'
     scaler_vv_path = ROOT_DIRECTORY / "assets" / 'scaler_vv.pkl'
@@ -42,10 +43,20 @@ def preprocess_data(arr_vh, arr_vv):
 
     stacked_matrix = np.array([vh_transformed, vv_transformed])
 
-    return stacked_matrix
+    return np.array([stacked_matrix])
 
 
-def make_predictions(chip_id: str):
+def neural_network_prediction(features_matrix: np.array, model):
+    """ Make predictions based on FPN neural network """
+
+    features_tensor = torch.from_numpy(features_matrix)
+    pr_mask = model.predict(features_tensor.cpu())
+    pr_mask = pr_mask.squeeze().cpu().numpy().astype(np.uint8)
+
+    return pr_mask
+
+
+def make_predictions(chip_id: str, model):
     """
     Given an image ID, read in the appropriate files and predict a mask of all ones or zeros
     """
@@ -55,8 +66,9 @@ def make_predictions(chip_id: str):
 
         # make transformations (gaussian filtering) and scaling
         features = preprocess_data(arr_vh, arr_vv)
-        same_mask = (arr_vv > 0) | (arr_vh > 1)  # this is nonsense but will be boolean
-        output_prediction = same_mask.astype(np.uint8)
+
+        # make predictions
+        output_prediction = neural_network_prediction(features, model)
     except:
         logger.warning(
             f"test_features not found for {chip_id}, predicting all zeros; did you download your"
@@ -85,11 +97,15 @@ def main():
         typer.echo("No input images found!")
         raise typer.Exit(code=1)
     logger.info(f"found {len(chip_ids)} expected image ids; generating predictions for each ...")
+
+    # load neural network
+    model_path = ROOT_DIRECTORY / "assets" / 'fpn_23_00_17_09.pth'
+    model = torch.load(model_path).cpu()
     for chip_id in tqdm(chip_ids, miniters=25, file=sys.stdout, leave=True):
         # figure out where this prediction data should go
         output_path = SUBMISSION_DIRECTORY / f"{chip_id}.tif"
         # make our predictions
-        output_data = make_predictions(chip_id)
+        output_data = make_predictions(chip_id, model)
         imwrite(output_path, output_data, dtype=np.uint8)
     logger.success(f"... done")
 
