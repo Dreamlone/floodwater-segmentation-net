@@ -1,4 +1,5 @@
 import sys
+import pickle
 from pathlib import Path
 
 from loguru import logger
@@ -6,11 +7,42 @@ import numpy as np
 import typer
 from tifffile import imwrite, imread
 from tqdm import tqdm
+from scipy.ndimage import gaussian_filter
 
-ROOT_DIRECTORY = Path("/codeexecution")
+ROOT_DIRECTORY = Path("../codeexecution")
 SUBMISSION_DIRECTORY = ROOT_DIRECTORY / "submission"
 DATA_DIRECTORY = ROOT_DIRECTORY / "data"
 INPUT_IMAGES_DIRECTORY = DATA_DIRECTORY / "test_features"
+
+
+def gauss_filtering(matrix):
+    return gaussian_filter(matrix, sigma=3)
+
+
+def preprocess_data(arr_vh, arr_vv):
+    """ Create stacked features numpy tensor """
+    scaler_vh_path = ROOT_DIRECTORY / "assets" / 'scaler_vh.pkl'
+    scaler_vv_path = ROOT_DIRECTORY / "assets" / 'scaler_vv.pkl'
+
+    with open(scaler_vh_path, 'rb') as f:
+        scaler_vh = pickle.load(f)
+
+    with open(scaler_vv_path, 'rb') as f:
+        scaler_vv = pickle.load(f)
+
+    # Apply filtering
+    arr_vh = gauss_filtering(np.array(arr_vh))
+    arr_vv = gauss_filtering(np.array(arr_vv))
+
+    vh_transformed = scaler_vh.transform(np.ravel(arr_vh).reshape((-1, 1)))
+    vh_transformed = vh_transformed.reshape((arr_vh.shape[0], arr_vh.shape[1]))
+
+    vv_transformed = scaler_vv.transform(np.ravel(arr_vv).reshape((-1, 1)))
+    vv_transformed = vv_transformed.reshape((arr_vv.shape[0], arr_vv.shape[1]))
+
+    stacked_matrix = np.array([vh_transformed, vv_transformed])
+
+    return stacked_matrix
 
 
 def make_predictions(chip_id: str):
@@ -20,7 +52,9 @@ def make_predictions(chip_id: str):
     try:
         arr_vh = imread(INPUT_IMAGES_DIRECTORY / f"{chip_id}_vh.tif")
         arr_vv = imread(INPUT_IMAGES_DIRECTORY / f"{chip_id}_vv.tif")
-        # TODO: this is the main work! it is your job to implement this
+
+        # make transformations (gaussian filtering) and scaling
+        features = preprocess_data(arr_vh, arr_vv)
         same_mask = (arr_vv > 0) | (arr_vh > 1)  # this is nonsense but will be boolean
         output_prediction = same_mask.astype(np.uint8)
     except:
@@ -54,7 +88,7 @@ def main():
     for chip_id in tqdm(chip_ids, miniters=25, file=sys.stdout, leave=True):
         # figure out where this prediction data should go
         output_path = SUBMISSION_DIRECTORY / f"{chip_id}.tif"
-        # make our predictions! (you should edit `make_predictions` to do something useful)
+        # make our predictions
         output_data = make_predictions(chip_id)
         imwrite(output_path, output_data, dtype=np.uint8)
     logger.success(f"... done")
