@@ -10,7 +10,7 @@ x_train, y_train = explorer.load_data(features_path='D:/segmentation/converted/X
                                       as_np=False)
 validation = data_utils.TensorDataset(x_train, y_train)
 # Validate model on the test dataset
-for th in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+for th in [0.5]:
     print(f'Threshold: {th}')
     metrics = [smp.utils.metrics.IoU(threshold=th)]
     explorer.validate(validation, model_path='D:/segmentation/fpn_23_00_17_09.pth',

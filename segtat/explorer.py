@@ -1,10 +1,13 @@
 import os
+import random
+
 import torch
 import torch.utils.data as data_utils
 import segmentation_models_pytorch as smp
 import numpy as np
 import matplotlib.pyplot as plt
-
+import albumentations
+import matplotlib.pyplot as plt
 from segtat.metrics import XEDiceLoss
 
 
@@ -14,7 +17,7 @@ class ModelExplorer:
     def __init__(self, working_dir: str, device: str = 'cpu'):
         self.working_dir = working_dir
         # Loss for all models will be the same
-        self.loss = smp.utils.losses.DiceLoss()
+        self.loss = smp.utils.losses.L1Loss()
         self.device = device
 
     def fit(self, train: torch.tensor, model, **params):
@@ -75,7 +78,7 @@ class ModelExplorer:
         if model is None:
             model = torch.load(model_path)
 
-        if params['vis'] is not None and params['vis'] is True:
+        if params.get('vis') is not None and params['vis'] is True:
             for i in range(5):
                 n = np.random.choice(len(test))
                 features_tensor = test.tensors[0][n]
@@ -150,6 +153,78 @@ class ModelExplorer:
         return train_dataset, test_dataset
 
     @staticmethod
-    def augmentation(dataset: torch.tensor) -> torch.tensor:
+    def augmentation(dataset: torch.tensor, vis: bool = False) -> data_utils.TensorDataset:
         """ Perform augmentation procedure """
-        raise NotImplementedError()
+        transformations = albumentations.Compose(
+            [
+                albumentations.ShiftScaleRotate(),
+                albumentations.HorizontalFlip(),
+                albumentations.VerticalFlip()
+            ]
+        )
+
+        features = dataset.tensors[0].numpy()
+        features_shape = features.shape
+        targets = dataset.tensors[1].numpy()
+
+        # Include test labels into array
+        stacked = np.concatenate([features, targets], axis=1)
+        random.seed(7)
+
+        # Perform transforms
+        # TODO make it more effective
+        for i in range(0, len(features)):
+            print(i)
+            image = stacked[i, 0:features_shape[1], :, :]
+            mask = stacked[i, features_shape[1], :, :]
+            mask = np.array([mask])
+            transformed = transformations(image=image, mask=mask)
+
+            augmented_features = transformed["image"]
+            augmented_label = transformed["mask"]
+
+            if vis:
+                plt.imshow(stacked[i, 0, :, :], cmap='jet')
+                plt.title('Исходная матрица VH')
+                plt.colorbar()
+                plt.show()
+
+                plt.imshow(stacked[i, 1, :, :], cmap='jet')
+                plt.title('Исходная матрица VV')
+                plt.colorbar()
+                plt.show()
+
+                plt.imshow(stacked[i, 2, :, :], cmap='Blues')
+                plt.title('Исходная матрица label')
+                plt.colorbar()
+                plt.show()
+
+                plt.imshow(augmented_features[0, :, :], cmap='jet')
+                plt.title('Преобразованная матрица VH')
+                plt.colorbar()
+                plt.show()
+
+                plt.imshow(augmented_features[1, :, :], cmap='jet')
+                plt.title('Преобразованная матрица VV')
+                plt.colorbar()
+                plt.show()
+
+                plt.imshow(augmented_label[0, :, :], cmap='Blues')
+                plt.title('Преобразованная матрица label')
+                plt.colorbar()
+                plt.show()
+
+            # Add dimension
+            augmented_features = np.array([augmented_features])
+            augmented_label = np.array([augmented_label])
+            if i == 0:
+                augmented_all_features = augmented_features
+                augmented_all_labels = augmented_label
+            else:
+                augmented_all_features = np.concatenate([augmented_all_features, augmented_features])
+                augmented_all_labels = np.concatenate([augmented_all_labels, augmented_label])
+
+        features = np.concatenate([features, augmented_all_features])
+        targets = np.concatenate([targets, augmented_all_labels])
+        print('Augmentation finished')
+        return data_utils.TensorDataset(torch.from_numpy(features), torch.from_numpy(targets))

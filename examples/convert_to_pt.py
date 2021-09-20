@@ -10,6 +10,6 @@ convert_geotiff_into_pt(train_features_path, train_label_path, save_path,
                         do_smoothing=True)
 
 # Advanced fields calculations and packing
-save_path = 'D:/segmentation/converted_ids'
-convert_geotiff_into_pt(train_features_path, train_label_path, save_path,
-                        transformed_indices=True, do_smoothing=True)
+# save_path = 'D:/segmentation/converted_ids'
+# convert_geotiff_into_pt(train_features_path, train_label_path, save_path,
+#                         transformed_indices=True, do_smoothing=True)
