@@ -17,13 +17,23 @@ INPUT_IMAGES_DIRECTORY = DATA_DIRECTORY / "test_features"
 
 
 def gauss_filtering(matrix: np.array) -> np.array:
-    return gaussian_filter(matrix, sigma=3)
+    return gaussian_filter(matrix, sigma=2)
+
+
+def swi_index(vh_matrix, vv_matrix):
+    if len(np.ravel(np.argwhere(vh_matrix == 0))) > 0:
+        vh_matrix[vh_matrix == 0] = 0.0001
+    if len(np.ravel(np.argwhere(vv_matrix == 0))) > 0:
+        vv_matrix[vv_matrix == 0] = 0.0001
+
+    return 0.1747*vv_matrix+0.0082*vh_matrix*vv_matrix+0.0023*np.power(vv_matrix, 2)-0.0015*np.power(vh_matrix, 2)+0.1904
 
 
 def preprocess_data(arr_vh: np.array, arr_vv: np.array) -> np.array:
     """ Create stacked features numpy tensor """
     scaler_vh_path = ROOT_DIRECTORY / "assets" / 'scaler_vh.pkl'
     scaler_vv_path = ROOT_DIRECTORY / "assets" / 'scaler_vv.pkl'
+    scaler_swi_path = ROOT_DIRECTORY / "assets" / 'scaler_swi.pkl'
 
     with open(scaler_vh_path, 'rb') as f:
         scaler_vh = pickle.load(f)
@@ -31,9 +41,14 @@ def preprocess_data(arr_vh: np.array, arr_vv: np.array) -> np.array:
     with open(scaler_vv_path, 'rb') as f:
         scaler_vv = pickle.load(f)
 
+    with open(scaler_swi_path, 'rb') as f:
+        scaler_swi = pickle.load(f)
+
     # Apply filtering
     arr_vh = gauss_filtering(np.array(arr_vh))
     arr_vv = gauss_filtering(np.array(arr_vv))
+    # Calculate SWI index array
+    arr_swi = swi_index(arr_vh, arr_vv)
 
     vh_transformed = scaler_vh.transform(np.ravel(arr_vh).reshape((-1, 1)))
     vh_transformed = vh_transformed.reshape((arr_vh.shape[0], arr_vh.shape[1]))
@@ -41,7 +56,10 @@ def preprocess_data(arr_vh: np.array, arr_vv: np.array) -> np.array:
     vv_transformed = scaler_vv.transform(np.ravel(arr_vv).reshape((-1, 1)))
     vv_transformed = vv_transformed.reshape((arr_vv.shape[0], arr_vv.shape[1]))
 
-    stacked_matrix = np.array([vh_transformed, vv_transformed])
+    swi_transformed = scaler_swi.transform(np.ravel(arr_swi).reshape((-1, 1)))
+    swi_transformed = swi_transformed.reshape((arr_swi.shape[0], arr_swi.shape[1]))
+
+    stacked_matrix = np.array([vh_transformed, vv_transformed, swi_transformed])
 
     return np.array([stacked_matrix])
 
@@ -99,7 +117,7 @@ def main():
     logger.info(f"found {len(chip_ids)} expected image ids; generating predictions for each ...")
 
     # load neural network
-    model_path = ROOT_DIRECTORY / "assets" / 'fpn_23_00_17_09.pth'
+    model_path = ROOT_DIRECTORY / "assets" / 'fpn_01_00_22_09.pth'
     model = torch.load(model_path).cpu()
     for chip_id in tqdm(chip_ids, miniters=25, file=sys.stdout, leave=True):
         # figure out where this prediction data should go

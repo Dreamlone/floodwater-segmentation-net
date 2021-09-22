@@ -17,7 +17,7 @@ class ModelExplorer:
     def __init__(self, working_dir: str, device: str = 'cpu'):
         self.working_dir = working_dir
         # Loss for all models will be the same
-        self.loss = smp.utils.losses.L1Loss()
+        self.loss = smp.utils.losses.JaccardLoss()
         self.device = device
 
     def fit(self, train: torch.tensor, model, **params):
@@ -79,7 +79,7 @@ class ModelExplorer:
             model = torch.load(model_path)
 
         if params.get('vis') is not None and params['vis'] is True:
-            for i in range(5):
+            for i in range(0, 5):
                 n = np.random.choice(len(test))
                 features_tensor = test.tensors[0][n]
                 true_label = test.tensors[1][n]
