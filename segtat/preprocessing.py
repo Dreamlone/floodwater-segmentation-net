@@ -16,7 +16,7 @@ def ratio_index(vh_matrix, vv_matrix):
 
 
 def gauss_filtering(matrix):
-    return gaussian_filter(matrix, sigma=2)
+    return gaussian_filter(matrix, sigma=1)
 
 
 def normalization(matrix):
