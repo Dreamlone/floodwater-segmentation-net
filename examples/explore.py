@@ -8,8 +8,8 @@ from geotiff import GeoTiff
 metadata = pd.read_csv('D:/segmentation/flood-training-metadata.csv')
 print(metadata.head(20))
 
-train_features_path = 'D:/segmentation/train_features'
-train_label_path = 'D:/segmentation/train_labels'
+train_features_path = 'D:/segmentation/filtered_features'
+train_label_path = 'D:/segmentation/filtered_labels'
 jrc_change_path = 'D:/segmentation/jrc_change'
 jrc_extent_path = 'D:/segmentation/jrc_extent'
 jrc_occurrence_path = 'D:/segmentation/jrc_occurrence'
@@ -33,7 +33,7 @@ for i, file in enumerate(label_files):
     label_path = os.path.join(train_label_path, file)
 
     # Good example of water and other
-    if i == 50:
+    if i == 3:
         # Read geotiff files
         file_vh_tiff = GeoTiff(file_vh_path)
         file_vv_tiff = GeoTiff(file_vv_path)

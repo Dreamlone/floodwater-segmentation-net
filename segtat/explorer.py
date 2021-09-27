@@ -18,6 +18,7 @@ class ModelExplorer:
         self.working_dir = working_dir
         # Loss for all models will be the same
         self.loss = smp.utils.losses.JaccardLoss()
+        self.loss.classes = [1]
         self.device = device
 
     def fit(self, train: torch.tensor, model, **params):
@@ -28,7 +29,7 @@ class ModelExplorer:
         :param model: class PyTorch model
         """
         path_to_save = os.path.join(self.working_dir, 'best_model.pth')
-        train_dataset, valid_dataset = self.train_test(train.tensors[0], train.tensors[1], train_size=0.9)
+        train_dataset, valid_dataset = self.train_test(train.tensors[0], train.tensors[1], train_size=0.95)
         # Prepare data loaders
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=params['batch_size'])
         valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=1, shuffle=False)
@@ -57,10 +58,10 @@ class ModelExplorer:
             train_logs = train_epoch.run(train_loader)
             valid_logs = valid_epoch.run(valid_loader)
 
-            # When it takes only 0.7 set
-            if i == round(params['epochs']*0.7):
+            # When it takes only 0.8 set
+            if i == round(params['epochs']*0.8):
                 # Decrease decoder learning rate to 1e-5
-                optimizer.param_groups[0]['lr'] = 1e-5
+                optimizer.param_groups[0]['lr'] = 0.000002
 
         torch.save(model, path_to_save)
         print('Model saved!')
@@ -139,8 +140,8 @@ class ModelExplorer:
         :param y_train: pytorch tensor with labels
         :param train_size: value from 0.1 to 0.9
         """
-        if train_size < 0.1 or train_size > 0.9:
-            raise ValueError('train_size value must be value between 0.1 and 0.9')
+        if train_size < 0.1 or train_size > 0.99:
+            raise ValueError('train_size value must be value between 0.1 and 0.99')
         dataset = data_utils.TensorDataset(x_train, y_train)
         train_ratio = round(len(dataset) * train_size)
         test_ratio = len(dataset) - train_ratio

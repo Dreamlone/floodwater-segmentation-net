@@ -3,9 +3,9 @@ import os
 from segtat.convert import convert_geotiff_into_pt
 
 # Simple VH and VV matrices with scaling packing
-train_features_path = 'D:/segmentation/train_features'
-train_label_path = 'D:/segmentation/train_labels'
-save_path = 'D:/segmentation/converted_final'
+train_features_path = 'D:/segmentation/no_missing_features'
+train_label_path = 'D:/segmentation/no_missing_labels'
+save_path = 'D:/segmentation/converted_no_missing'
 
 jrc_change_path = 'D:/segmentation/jrc_change'
 jrc_extent_path = 'D:/segmentation/jrc_extent'
@@ -20,7 +20,7 @@ additional_paths = {'jrc_change': jrc_change_path, 'jrc_extent': jrc_extent_path
                     'nasadem': nasadem_path}
 
 convert_geotiff_into_pt(train_features_path, train_label_path, save_path,
-                        do_smoothing=True, additional_paths=additional_paths)
+                        do_smoothing=False, additional_paths=additional_paths)
 
 # Advanced fields calculations and packing
 # save_path = 'D:/segmentation/converted_ids'
