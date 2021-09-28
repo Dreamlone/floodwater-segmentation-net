@@ -5,7 +5,7 @@ from geotiff import GeoTiff
 from shutil import copyfile
 
 
-def filter_data(features_path: str, label_path: str, threshold: float,
+def filter_data(features_path: str, label_path: str,
                 features_save_path: str, label_save_path: str):
     """ Filtering data to prepare only filtered images (with water) """
     # Create folder if it's not exists

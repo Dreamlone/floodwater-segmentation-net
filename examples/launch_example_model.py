@@ -10,8 +10,8 @@ from segtat.explorer import ModelExplorer
 """
 explorer = ModelExplorer(working_dir='D:/segmentation', device='cuda')
 # Load data as PyTorch tensors
-x_train, y_train = explorer.load_data(features_path='D:/segmentation/converted_filtered_all/X_train.pt',
-                                      target_path='D:/segmentation/converted_filtered_all/Y_train.pt',
+x_train, y_train = explorer.load_data(features_path='D:/segmentation/converted_no_missing/X_train.pt',
+                                      target_path='D:/segmentation/converted_no_missing/Y_train.pt',
                                       as_np=False)
 
 x_train = x_train.float()
