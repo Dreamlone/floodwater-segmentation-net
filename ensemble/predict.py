@@ -56,6 +56,60 @@ def preprocess_filtered_data(chip_id, arr_vh: np.array, arr_vv: np.array) -> np.
     ############################################################################
     # S C A L E R S                S C A L E R S                 S C A L E R S #
     ############################################################################
+    scaler_vh_path = ASSETS_DIRECTORY / 'scaler_vh_julia.pkl'
+    scaler_vv_path = ASSETS_DIRECTORY / 'scaler_vv_julia.pkl'
+    scaler_swi_path = ASSETS_DIRECTORY / 'scaler_swi_julia.pkl'
+    scaler_nasadem_path = ASSETS_DIRECTORY / 'scaler_nasadem_julia.pkl'
+    scaler_seasonality_path = ASSETS_DIRECTORY / 'scaler_seasonality_julia.pkl'
+
+    with open(scaler_vh_path, 'rb') as f:
+        scaler_vh = pickle.load(f)
+
+    with open(scaler_vv_path, 'rb') as f:
+        scaler_vv = pickle.load(f)
+
+    with open(scaler_swi_path, 'rb') as f:
+        scaler_swi = pickle.load(f)
+
+    with open(scaler_nasadem_path, 'rb') as f:
+        scaler_nasadem = pickle.load(f)
+
+    with open(scaler_seasonality_path, 'rb') as f:
+        scaler_seasonality = pickle.load(f)
+
+    vh_transformed = _scale_matrix(scaler_vh, arr_vh)
+    vv_transformed = _scale_matrix(scaler_vv, arr_vv)
+    swi_transformed = _scale_matrix(scaler_swi, arr_swi)
+    nasadem_transformed = _scale_matrix(scaler_nasadem, nasadem_matrix)
+    seasonality_transformed = _scale_matrix(scaler_seasonality, seasonality_matrix)
+
+    stacked_matrix = np.array([vh_transformed, vv_transformed, extent_matrix, seasonality_transformed,
+                               nasadem_transformed, swi_transformed])
+
+    return np.array([stacked_matrix])
+
+
+def preprocess_julia_data(chip_id, arr_vh: np.array, arr_vv: np.array) -> np.array:
+    extent_data = DATA_DIRECTORY / "jrc_extent"
+    seasonality_data = DATA_DIRECTORY / "jrc_seasonality"
+    nasadem_data = DATA_DIRECTORY / "nasadem"
+
+    # Read all matrices
+    extent_matrix = imread(extent_data / f"{chip_id}.tif")
+    extent_matrix = np.array(extent_matrix)
+
+    seasonality_matrix = imread(seasonality_data / f"{chip_id}.tif")
+    seasonality_matrix = np.array(seasonality_matrix)
+
+    nasadem_matrix = imread(nasadem_data / f"{chip_id}.tif")
+    nasadem_matrix = np.array(nasadem_matrix)
+
+    # Calculate SWI index array
+    arr_swi = swi_index(arr_vh, arr_vv)
+
+    ############################################################################
+    # S C A L E R S                S C A L E R S                 S C A L E R S #
+    ############################################################################
     scaler_vh_path = ASSETS_DIRECTORY / 'scaler_vh_filtered.pkl'
     scaler_vv_path = ASSETS_DIRECTORY / 'scaler_vv_filtered.pkl'
     scaler_swi_path = ASSETS_DIRECTORY / 'scaler_swi_filtered.pkl'
@@ -81,10 +135,12 @@ def preprocess_filtered_data(chip_id, arr_vh: np.array, arr_vv: np.array) -> np.
     vv_transformed = _scale_matrix(scaler_vv, arr_vv)
     swi_transformed = _scale_matrix(scaler_swi, arr_swi)
     nasadem_transformed = _scale_matrix(scaler_nasadem, nasadem_matrix)
-    seasonality_transformed = _scale_matrix(scaler_seasonality, seasonality_matrix)
+    seasonality_transformed = _scale_matrix(scaler_seasonality,
+                                            seasonality_matrix)
 
-    stacked_matrix = np.array([vh_transformed, vv_transformed, extent_matrix, seasonality_transformed,
-                               nasadem_transformed, swi_transformed])
+    stacked_matrix = np.array(
+        [vh_transformed, vv_transformed, extent_matrix, seasonality_transformed,
+         nasadem_transformed, swi_transformed])
 
     return np.array([stacked_matrix])
 
@@ -133,12 +189,18 @@ def neural_network_prediction(chip_id: str, model_1, model_2, model_3, model_4, 
     # make transformations (gaussian filtering) and scaling
     features_matrix_filtered = preprocess_filtered_data(chip_id, arr_vh, arr_vv)
     features_matrix_non_filtered = preprocess_non_filtered_data(arr_vh, arr_vv)
+    features_matrix_julia = preprocess_julia_data(chip_id, arr_vh, arr_vv)
 
     features_tensor_filtered = torch.from_numpy(features_matrix_filtered)
     features_tensor_filtered = features_tensor_filtered.float()
+    # Tensor for Julia net
+    features_tensor_julia = torch.from_numpy(features_matrix_julia)
+    features_tensor_julia = features_tensor_julia.float()
+
     features_tensor_non_filtered = torch.from_numpy(features_matrix_non_filtered)
+
     # Ensemble predictions
-    model_1_mask = model_1.predict(features_tensor_filtered.to('cuda'))
+    model_1_mask = model_1.predict(features_tensor_julia.to('cuda'))
     model_2_mask = model_2.predict(features_tensor_filtered.to('cuda'))
     model_3_mask = model_3.predict(features_tensor_non_filtered.to('cuda'))
     model_4_mask = model_4.predict(features_tensor_filtered.to('cuda'))

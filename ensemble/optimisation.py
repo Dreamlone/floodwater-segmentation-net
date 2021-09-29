@@ -90,7 +90,7 @@ def _objective(parameters_dict, model_1, model_2, model_3, model_4, model_5):
 
 
 # Load all neural networks
-model_1_path = ASSETS_DIRECTORY / 'unet_21_00_26_09.pth'
+model_1_path = ASSETS_DIRECTORY / 'julia_net.pth'
 model_1 = torch.load(model_1_path).to('cuda')
 
 model_2_path = ASSETS_DIRECTORY / 'manet_19_00_26_09.pth'
@@ -115,7 +115,7 @@ best = fmin(partial(_objective,
                     model_5=model_5),
             space=parameters_dict,
             algo=tpe.suggest,
-            max_evals=200)
+            max_evals=300)
 
 # Get parameters
 best = space_eval(space=parameters_dict, hp_assignment=best)

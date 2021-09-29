@@ -22,7 +22,7 @@ def read_label(chip_id):
 
 def validate_on_train_dataset(vis=False):
     # load neural networks
-    model_1_path = ASSETS_DIRECTORY / 'unet_21_00_26_09.pth'
+    model_1_path = ASSETS_DIRECTORY / 'julia_net.pth'
     model_1 = torch.load(model_1_path).to('cuda')
 
     model_2_path = ASSETS_DIRECTORY / 'manet_19_00_26_09.pth'
@@ -46,9 +46,12 @@ def validate_on_train_dataset(vis=False):
         print(f'Processing {chip_id} file ...')
         pr_mask = neural_network_prediction(chip_id=chip_id, model_1=model_1, model_2=model_2,
                                             model_3=model_3, model_4=model_4, model_5=model_5,
-                                            model_1_th=0.0004, model_2_th=0.001, model_3_th=0.5,
-                                            model_4_th=0.001, model_5_th=0.001,
-                                            weights=[0.2, 0.2, 0.2, 0.2, 0.2])
+                                            model_1_th=0.4539857438174642,
+                                            model_2_th=0.030477585845225155,
+                                            model_3_th=0.10286925003900799,
+                                            model_4_th=0.18121713305946494,
+                                            model_5_th=0.19246306212114966,
+                                            weights=[0.34317062428202233, 0.9514582707183111, 0.8408792789898537, 0.2434488490288705, 0.7670550820613071])
         # Real matrix
         real_mask = read_label(chip_id=chip_id)
 

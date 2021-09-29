@@ -22,7 +22,7 @@ def read_label(chip_id):
 
 def validate_on_train_dataset(vis=False):
     # load neural networks
-    model_1_path = ASSETS_DIRECTORY / 'unet_21_00_26_09.pth'
+    model_1_path = ASSETS_DIRECTORY / 'julia_net.pth'
     model_1 = torch.load(model_1_path).to('cuda')
 
     model_2_path = ASSETS_DIRECTORY / 'manet_19_00_26_09.pth'
@@ -47,12 +47,12 @@ def validate_on_train_dataset(vis=False):
         # TODO change parameters to founded
         pr_mask = neural_network_prediction(chip_id=chip_id, model_1=model_1, model_2=model_2,
                                             model_3=model_3, model_4=model_4, model_5=model_5,
-                                            model_1_th=0.4786118845013668,
-                                            model_2_th=0.45231541148089927,
-                                            model_3_th=0.012616133131346047,
-                                            model_4_th=0.09113130377469408,
-                                            model_5_th=0.2565778485812052,
-                                            weights=[0.07785132604881947, 0.8577876324711068, 0.6313899058700289, 0.1651720604375764, 0.600658681775319])
+                                            model_1_th=0.2985557356109547,
+                                            model_2_th=0.12083288767481207,
+                                            model_3_th=0.10229397516605757,
+                                            model_4_th=0.16863169578777198,
+                                            model_5_th=0.12360804268998617,
+                                            weights=[0.09, 0.72, 0.76, 0.38, 0.94])
         # Real matrix
         real_mask = read_label(chip_id=chip_id)
 
@@ -81,5 +81,5 @@ def validate_on_train_dataset(vis=False):
     return float(calculated_loss), float(calculated_metric)
 
 
-calculated_loss, calculated_metric = validate_on_train_dataset(vis=True)
+calculated_loss, calculated_metric = validate_on_train_dataset(vis=False)
 print(f'Obtained results for train set: {calculated_loss:.4f}, {calculated_metric:.4f}')

@@ -23,16 +23,16 @@ train, test = explorer.train_test(x_train, y_train, train_size=0.98)
 train = explorer.augmentation(train)
 
 # Initialise Neural network model
-nn_model = smp.Unet(encoder_name="resnet18",
-                    encoder_weights="imagenet",
-                    in_channels=6,
-                    classes=1,
-                    activation='sigmoid')
+nn_model = smp.PAN(encoder_name="resnet18",
+                   encoder_weights="imagenet",
+                   in_channels=6,
+                   classes=1,
+                   activation='sigmoid')
 optimizer = torch.optim.Adam(params=nn_model.parameters(), lr=0.0001)
 metrics = [smp.utils.metrics.IoU(threshold=0.5)]
 
 # Launch network model
-fitted_model = explorer.fit(train, nn_model, batch_size=4, epochs=150,
+fitted_model = explorer.fit(train, nn_model, batch_size=4, epochs=70,
                             optimizer=optimizer, metrics=metrics)
 
 # Validate model on the test dataset

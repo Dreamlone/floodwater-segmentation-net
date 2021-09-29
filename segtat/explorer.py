@@ -17,8 +17,7 @@ class ModelExplorer:
     def __init__(self, working_dir: str, device: str = 'cpu'):
         self.working_dir = working_dir
         # Loss for all models will be the same
-        self.loss = smp.utils.losses.JaccardLoss()
-        self.loss.classes = [1]
+        self.loss = smp.utils.losses.DiceLoss()
         self.device = device
 
     def fit(self, train: torch.tensor, model, **params):
@@ -29,6 +28,7 @@ class ModelExplorer:
         :param model: class PyTorch model
         """
         path_to_save = os.path.join(self.working_dir, 'best_model.pth')
+        path_prom_save = os.path.join(self.working_dir, 'prom.pth')
         train_dataset, valid_dataset = self.train_test(train.tensors[0], train.tensors[1], train_size=0.95)
         # Prepare data loaders
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=params['batch_size'])
@@ -62,6 +62,8 @@ class ModelExplorer:
             if i == round(params['epochs']*0.8):
                 # Decrease decoder learning rate to 1e-5
                 optimizer.param_groups[0]['lr'] = 0.000002
+            if i == 10 or i == 20 or i == 30 or i == 40 or i == 50:
+                torch.save(model, path_prom_save)
 
         torch.save(model, path_to_save)
         print('Model saved!')
