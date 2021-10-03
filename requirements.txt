@@ -8,3 +8,6 @@ geotiff
 torch
 segmentation-models-pytorch==0.2.0
 pytorch-lightning==1.4.1
+loguru
+typer
+albumentations
